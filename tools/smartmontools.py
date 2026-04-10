@@ -1,70 +1,45 @@
+#!/usr/bin/env python3
 """
-Aegis Layer 3 — smartmontools.py
+Aegis Layer 5 — smartmontools.py
 Disk S.M.A.R.T. health monitoring module.
 """
 
-import logging
-import os
-import shutil
 import subprocess
 from datetime import datetime
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from utils.logger import log_info, log_success, log_error, log_warning
+from utils.apt import install_package
+from utils.system import command_exists
+
 
 SMARTD_CONF = Path("/etc/smartd.conf")
-SMARTD_CONF_BACKUP = Path("/etc/smartd.conf.aegis-backup")
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def command_exists(cmd: str) -> bool:
-    """Return True if *cmd* is found on PATH."""
-    return shutil.which(cmd) is not None
-
-
-def install_package(packages: str) -> bool:
-    """Install one or more packages via apt-get."""
-    env = os.environ.copy()
-    env["DEBIAN_FRONTEND"] = "noninteractive"
-    result = subprocess.run(
-        ["apt-get", "install", "-y", *packages.split()],
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-    if result.returncode != 0:
-        logger.error("apt-get install failed: %s", result.stderr.strip())
-        return False
-    return True
-
-
-def _backup_file(path: Path) -> Path | None:
-    """Backup *path* with an .aegis-backup suffix; return backup path or None."""
-    if not path.exists():
-        return None
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup = path.with_suffix(f".{timestamp}.aegis-backup")
-    shutil.copy2(str(path), str(backup))
-    logger.info("Backed up %s -> %s", path, backup)
-    return backup
-
-
-def _run(args: list[str], **kwargs) -> subprocess.CompletedProcess:
+def _run(args: list, **kwargs) -> subprocess.CompletedProcess:
     """Run a command with safe defaults; no shell=True."""
     return subprocess.run(args, capture_output=True, text=True, **kwargs)
 
 
-# ---------------------------------------------------------------------------
-# Core functions
-# ---------------------------------------------------------------------------
+def _backup_file(path: Path) -> Path | None:
+    """Backup *path* with a timestamped .aegis-backup suffix; return backup path or None."""
+    if not path.exists():
+        return None
+    import shutil
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup = path.with_suffix(f".{timestamp}.aegis-backup")
+    shutil.copy2(str(path), str(backup))
+    log_info(f"Backed up {path} -> {backup}")
+    return backup
+
 
 def install() -> bool:
     """Install smartmontools package."""
-    logger.info("Installing smartmontools…")
-    install_package("smartmontools")
+    log_info("Installing smartmontools...")
+    if not install_package("smartmontools"):
+        log_error("Failed to install smartmontools")
+        return False
+    log_success("smartmontools installed")
     return True
 
 
@@ -80,11 +55,8 @@ def configure() -> bool:
         if scan.returncode == 0:
             for line in scan.stdout.splitlines():
                 parts = line.split()
-                if parts:
-                    dev = parts[0]
-                    if dev.startswith("/dev/"):
-                        devices.append(dev)
-                        logger.debug("Detected drive: %s", dev)
+                if parts and parts[0].startswith("/dev/"):
+                    devices.append(parts[0])
 
     # Backup existing config
     _backup_file(SMARTD_CONF)
@@ -97,26 +69,25 @@ def configure() -> bool:
     ]
     if devices:
         for dev in devices:
-            lines.append(
-                f"{dev} -H -l error -l selftest -C 194 -W 2,40,45 -m root"
-            )
-        logger.info("Configured smartd for %d device(s): %s", len(devices), devices)
+            # -H: health check  -l: log errors+self-tests  -C: temperature attr
+            # -W 2,40,45: warn at +2°C / 40°C / crit at 45°C  -m root: mail root
+            lines.append(f"{dev} -H -l error -l selftest -C 194 -W 2,40,45 -m root")
+        log_info(f"Configured smartd for {len(devices)} device(s): {devices}")
     else:
-        lines.append(
-            "DEVICESCAN -H -l error -l selftest -C 194 -W 2,40,45 -m root"
-        )
-        logger.warning("No drives detected via smartctl --scan; using DEVICESCAN fallback")
+        lines.append("DEVICESCAN -H -l error -l selftest -C 194 -W 2,40,45 -m root")
+        log_warning("No drives detected via smartctl --scan; using DEVICESCAN fallback")
 
     SMARTD_CONF.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    os.chmod(SMARTD_CONF, 0o644)
-    logger.info("Wrote %s", SMARTD_CONF)
+    SMARTD_CONF.chmod(0o644)
+    log_info(f"Wrote {SMARTD_CONF}")
 
     # Enable and start service
     for args in (["systemctl", "enable", "smartd"], ["systemctl", "restart", "smartd"]):
         result = _run(args)
         if result.returncode != 0:
-            logger.error("Command failed %s: %s", args, result.stderr.strip())
+            log_warning(f"{' '.join(args)} failed: {result.stderr.strip()}")
 
+    log_success("smartd enabled and monitoring disk health")
     return True
 
 

@@ -194,16 +194,42 @@ def show_interactive_options():
     print("╚═══════════════════════════════════════════════════════════╝\n")
 
 
-def configure():
-    """Configure Bluetooth security (interactive)."""
+def configure(unattended: bool = False):
+    """
+    Configure Bluetooth security.
+
+    Interactive mode: presents a menu (disable / harden / skip).
+    Unattended mode: hardens configuration automatically (non-discoverable,
+    no auto-pair) without disabling Bluetooth entirely, so the user can
+    still connect their own devices after first boot.
+    """
     if not check():
-        log_warning("Bluetooth hardware not detected or not available")
+        log_warning("Bluetooth hardware not detected or not available — skipping")
         return True
 
-    status = get_bluetooth_status()
-    if status:
-        log_info(f"Current Bluetooth status: Powered={status.get('Powered', '?')}, "
-                f"Discoverable={status.get('Discoverable', '?')}")
+    current = get_bluetooth_status()
+    if current:
+        log_info(
+            f"Current Bluetooth: Powered={current.get('Powered', '?')}, "
+            f"Discoverable={current.get('Discoverable', '?')}"
+        )
+
+    if unattended:
+        log_info("Unattended mode — hardening Bluetooth configuration (non-discoverable, no auto-pair)")
+        if harden_bluetooth_config():
+            try:
+                subprocess.run(
+                    ["systemctl", "restart", "bluetooth"],
+                    capture_output=True,
+                    timeout=10,
+                )
+            except Exception:
+                pass
+            log_success("Bluetooth hardened")
+            return True
+        else:
+            log_error("Bluetooth hardening failed")
+            return False
 
     show_interactive_options()
 
@@ -222,13 +248,12 @@ def configure():
         elif choice == "2":
             log_info("Hardening Bluetooth configuration...")
             if harden_bluetooth_config():
-                log_success("Bluetooth hardened and service will be configured")
-                # Try to restart bluetooth if it's running
+                log_success("Bluetooth hardened")
                 try:
                     subprocess.run(
                         ["systemctl", "restart", "bluetooth"],
                         capture_output=True,
-                        timeout=10
+                        timeout=10,
                     )
                 except Exception:
                     pass

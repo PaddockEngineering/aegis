@@ -43,9 +43,10 @@ import tools.openscap as openscap
 class AegisSetup:
     """Main Aegis shield defense orchestrator."""
 
-    def __init__(self):
+    def __init__(self, unattended: bool = False):
         """Initialize setup."""
         self.config = self.load_config()
+        self.unattended = unattended
         self.installed_count = 0
         self.skipped_count = 0
         self.failed_count = 0
@@ -94,8 +95,10 @@ class AegisSetup:
         log_success("System check passed (Debian-based, running as root)")
         return True
 
-    def prompt_yn(self, question):
-        """Prompt user for yes/no."""
+    def prompt_yn(self, question, default: bool = True):
+        """Prompt user for yes/no. In unattended mode returns *default* immediately."""
+        if self.unattended:
+            return default
         while True:
             response = input(f"{question} (y/n): ").strip().lower()
             if response in ['y', 'yes']:
@@ -179,7 +182,19 @@ class AegisSetup:
                 try:
                     if module.install():
                         log_info(f"Configuring {name}...")
-                        if module.configure():
+                        # Pass unattended flag to modules that support it
+                        from tools import get_function
+                        configure_fn = get_function(module, "configure")
+                        if configure_fn:
+                            import inspect
+                            sig = inspect.signature(configure_fn)
+                            if "unattended" in sig.parameters:
+                                ok = configure_fn(unattended=self.unattended)
+                            else:
+                                ok = configure_fn()
+                        else:
+                            ok = True  # No configure() — skip silently
+                        if ok:
                             self.installed_count += 1
                             log_success(f"{name} — shield active")
                         else:
@@ -204,7 +219,18 @@ class AegisSetup:
                 try:
                     if module.install():
                         log_info(f"Configuring {name}...")
-                        if module.configure():
+                        from tools import get_function
+                        import inspect
+                        configure_fn = get_function(module, "configure")
+                        if configure_fn:
+                            sig = inspect.signature(configure_fn)
+                            if "unattended" in sig.parameters:
+                                ok = configure_fn(unattended=self.unattended)
+                            else:
+                                ok = configure_fn()
+                        else:
+                            ok = True
+                        if ok:
                             self.installed_count += 1
                             log_success(f"{name} — shield active")
                         else:
@@ -437,12 +463,17 @@ Examples:
     parser.add_argument("--hardening-medium", dest="hardening_medium", action="store_true", help="Integrity: Smartmontools, AppArmor, Kernel, Bluetooth")
     parser.add_argument("--hardening-low", dest="hardening_low", action="store_true", help="Monitoring: AIDE, Docker security, OpenSCAP")
     parser.add_argument("--status", action="store_true", help="Shield status report")
+    parser.add_argument(
+        "--unattended",
+        action="store_true",
+        help="Non-interactive mode: skip all prompts, pick secure defaults (ideal for fresh installs)",
+    )
 
     args = parser.parse_args()
 
     require_root()
 
-    setup = AegisSetup()
+    setup = AegisSetup(unattended=args.unattended)
     setup.run(args)
 
 
