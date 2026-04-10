@@ -170,12 +170,13 @@ class AegisSetup:
                     self.failed_count += 1
 
         elif category == "hardening":
-            # Layer 1-2: Perimeter + Hull Plating
+            # Layer 2: Hull Plating
             hardening_tools = [
                 ("Fail2ban", fail2ban),
                 ("Auditd", auditd),
                 ("SSH Hardening", ssh_hardening),
                 ("Unattended-upgrades", unattended_upgrades),
+                ("GRUB Hardening", grub_hardening),
             ]
 
             for name, module in hardening_tools:
@@ -213,6 +214,7 @@ class AegisSetup:
                 ("AppArmor", apparmor),
                 ("Kernel Sysctl Hardening", kernel_sysctl),
                 ("Bluetooth Security", bluetooth),
+                ("USBGuard", usbguard),
             ]
 
             for name, module in medium_tools:
@@ -248,13 +250,25 @@ class AegisSetup:
                 ("AIDE", aide),
                 ("Docker Security (Trivy)", docker_security),
                 ("OpenSCAP", openscap),
+                ("Lynis", lynis),
             ]
 
             for name, module in low_tools:
                 try:
                     if module.install():
                         log_info(f"Configuring {name}...")
-                        if module.configure():
+                        from tools import get_function
+                        import inspect
+                        configure_fn = get_function(module, "configure")
+                        if configure_fn:
+                            sig = inspect.signature(configure_fn)
+                            if "unattended" in sig.parameters:
+                                ok = configure_fn(unattended=self.unattended)
+                            else:
+                                ok = configure_fn()
+                        else:
+                            ok = True
+                        if ok:
                             self.installed_count += 1
                             log_success(f"{name} — shield active")
                         else:
@@ -333,7 +347,6 @@ class AegisSetup:
         elif category == "monitoring":
             return monitoring
         elif category == "hardening":
-            # Return wrapper for hardening tools
             class HardeningModule:
                 def status(self):
                     statuses = []
@@ -342,6 +355,7 @@ class AegisSetup:
                         ("Auditd", auditd),
                         ("SSH Hardening", ssh_hardening),
                         ("Unattended-upgrades", unattended_upgrades),
+                        ("GRUB Hardening", grub_hardening),
                     ]:
                         try:
                             statuses.append(f"{name}: {module.status()}")
@@ -350,7 +364,6 @@ class AegisSetup:
                     return "\n  ".join(statuses)
             return HardeningModule()
         elif category == "hardening-medium":
-            # Return wrapper for medium priority hardening tools
             class HardeningMediumModule:
                 def status(self):
                     statuses = []
@@ -359,6 +372,7 @@ class AegisSetup:
                         ("AppArmor", apparmor),
                         ("Kernel Sysctl", kernel_sysctl),
                         ("Bluetooth", bluetooth),
+                        ("USBGuard", usbguard),
                     ]:
                         try:
                             statuses.append(f"{name}: {module.status()}")
@@ -367,7 +381,6 @@ class AegisSetup:
                     return "\n  ".join(statuses)
             return HardeningMediumModule()
         elif category == "hardening-low":
-            # Return wrapper for low priority hardening tools
             class HardeningLowModule:
                 def status(self):
                     statuses = []
@@ -375,6 +388,7 @@ class AegisSetup:
                         ("AIDE", aide),
                         ("Docker Security", docker_security),
                         ("OpenSCAP", openscap),
+                        ("Lynis", lynis),
                     ]:
                         try:
                             statuses.append(f"{name}: {module.status()}")
@@ -382,6 +396,20 @@ class AegisSetup:
                             statuses.append(f"{name}: Error - {str(e)}")
                     return "\n  ".join(statuses)
             return HardeningLowModule()
+        elif category == "monitoring":
+            class MonitoringModule:
+                def status(self):
+                    statuses = []
+                    for name, module in [
+                        ("Monitoring", monitoring),
+                        ("Syslog", syslog),
+                    ]:
+                        try:
+                            statuses.append(f"{name}: {module.status()}")
+                        except Exception as e:
+                            statuses.append(f"{name}: Error - {str(e)}")
+                    return "\n  ".join(statuses)
+            return MonitoringModule()
         return None
 
     def show_summary(self):
@@ -459,9 +487,9 @@ Examples:
     parser.add_argument("--malware", action="store_true", help="Sensors: ClamAV + rkhunter")
     parser.add_argument("--isolation", action="store_true", help="Integrity: Firejail sandboxing")
     parser.add_argument("--monitoring", action="store_true", help="Sensors: Hardware monitoring")
-    parser.add_argument("--hardening", action="store_true", help="Hull: Fail2ban, Auditd, SSH, Auto-patch")
-    parser.add_argument("--hardening-medium", dest="hardening_medium", action="store_true", help="Integrity: Smartmontools, AppArmor, Kernel, Bluetooth")
-    parser.add_argument("--hardening-low", dest="hardening_low", action="store_true", help="Monitoring: AIDE, Docker security, OpenSCAP")
+    parser.add_argument("--hardening", action="store_true", help="Hull: Fail2ban, Auditd, SSH, GRUB, Auto-patch")
+    parser.add_argument("--hardening-medium", dest="hardening_medium", action="store_true", help="Integrity: AppArmor, Kernel, Bluetooth, USBGuard, Smartmontools")
+    parser.add_argument("--hardening-low", dest="hardening_low", action="store_true", help="Monitoring: AIDE, Docker, OpenSCAP, Lynis")
     parser.add_argument("--status", action="store_true", help="Shield status report")
     parser.add_argument(
         "--unattended",

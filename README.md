@@ -31,7 +31,7 @@ That's it. Shields up.
 
 ## Defense Layers
 
-Aegis implements **defense-in-depth** — 16 modules across 6 shield layers, each independent, each reinforcing the others.
+Aegis implements **defense-in-depth** — 21 modules across 6 shield layers, each independent, each reinforcing the others.
 
 ### Layer 1 — Perimeter Shield
 Blocks threats before they reach the system.
@@ -43,22 +43,24 @@ Blocks threats before they reach the system.
 | **Intrusion Prevention** | Fail2ban | Auto-bans IPs after repeated failed auth (SSH, web) with escalating penalties |
 
 ### Layer 2 — Hull Plating
-Hardens the operating system kernel and network stack against exploitation.
+Hardens the operating system kernel and boot environment against exploitation.
 
 | Module | Tool | What It Does |
 |--------|------|-------------|
 | **Kernel Hardening** | sysctl | 20+ parameters: ASLR, ptrace restriction, ICMP lockdown, SYN flood protection |
-| **SSH Hardening** | OpenSSH | Strong ciphers (ChaCha20, AES-256-GCM), modern KEX, root login disabled |
+| **SSH Hardening** | OpenSSH + Tailscale | Strong ciphers (ChaCha20, AES-256-GCM), modern KEX, root login disabled. Optional Tailscale integration to remove SSH from public interfaces entirely |
 | **Auto-Patch** | unattended-upgrades | Security patches applied daily, unused kernels cleaned automatically |
+| **Boot Hardening** | GRUB | Disables recovery mode, optional superuser password to prevent physical-access boot menu attacks |
 
 ### Layer 3 — Structural Integrity
-Isolates processes and enforces mandatory access control.
+Isolates processes, enforces mandatory access control, and blocks rogue hardware.
 
 | Module | Tool | What It Does |
 |--------|------|-------------|
 | **Access Control** | AppArmor | Mandatory access control profiles for system services |
-| **Process Isolation** | Firejail | Namespace sandboxing for untrusted applications |
+| **Process Isolation** | Firejail | Namespace + seccomp sandboxing for untrusted applications |
 | **Wireless Security** | Bluetooth controls | Disable or harden Bluetooth (non-discoverable, restricted pairing) |
+| **USB Authorization** | USBGuard | Blocks unauthorized USB devices at kernel level — prevents BadUSB and rubber ducky attacks |
 
 ### Layer 4 — Internal Sensors
 Detects threats that have already breached the perimeter.
@@ -68,6 +70,7 @@ Detects threats that have already breached the perimeter.
 | **Antivirus** | ClamAV | Automated daily scans of /home, /root, /tmp with freshclam updates |
 | **Rootkit Scanner** | rkhunter | Daily rootkit and backdoor detection |
 | **System Auditing** | auditd | Logs privilege escalation, file access, config changes, SSH key modifications |
+| **Log Management** | rsyslog + logrotate | Centralizes auth, kernel, cron, and alert logs to /var/log/aegis/ with 90-day retention |
 
 ### Layer 5 — Integrity Monitoring
 Verifies the system hasn't been tampered with.
@@ -75,7 +78,7 @@ Verifies the system hasn't been tampered with.
 | Module | Tool | What It Does |
 |--------|------|-------------|
 | **File Integrity** | AIDE | SHA-512 checksums of critical paths, daily change detection |
-| **Disk Health** | smartmontools | S.M.A.R.T. monitoring with daily health checks and alerts |
+| **Disk Health** | smartmontools | S.M.A.R.T. monitoring with daily health checks and temperature alerts |
 | **Container Scanning** | Trivy | Vulnerability scanning for Docker images (on-demand) |
 
 ### Layer 6 — Compliance Verification
@@ -83,7 +86,8 @@ Proves the defenses work against recognized standards.
 
 | Module | Tool | What It Does |
 |--------|------|-------------|
-| **CIS Benchmarks** | OpenSCAP | Weekly automated compliance audits against CIS Level 2 profiles with HTML reports |
+| **CIS Benchmarks** | OpenSCAP | Weekly automated compliance audits against CIS Level 2 profiles with HTML reports. Distro-aware — detects the correct datastream for Ubuntu, Debian, Mint, and Pop!_OS |
+| **Hardening Audit** | Lynis | Local security audit with hardening index score and prioritized suggestions. Weekly automated runs |
 
 ---
 
@@ -232,22 +236,27 @@ aegis/
 ├── config/
 │   └── tools.json              # Tool registry and metadata
 ├── tools/
+│   ├── __init__.py             # Capability detection (has_function, capabilities_report)
 │   ├── firewall.py             # Layer 1 — UFW
 │   ├── vpn.py                  # Layer 1 — AirVPN Eddie
 │   ├── fail2ban.py             # Layer 1 — Intrusion prevention
 │   ├── kernel_sysctl.py        # Layer 2 — Kernel hardening (20+ params)
-│   ├── ssh_hardening.py        # Layer 2 — SSH configuration
+│   ├── ssh_hardening.py        # Layer 2 — SSH + optional Tailscale
 │   ├── unattended_upgrades.py  # Layer 2 — Auto security patches
+│   ├── grub_hardening.py       # Layer 2 — Boot security
 │   ├── apparmor.py             # Layer 3 — Mandatory access control
 │   ├── isolation.py            # Layer 3 — Firejail sandboxing
 │   ├── bluetooth.py            # Layer 3 — Wireless security
+│   ├── usbguard.py             # Layer 3 — USB device authorization
 │   ├── malware.py              # Layer 4 — ClamAV + rkhunter
 │   ├── auditd.py               # Layer 4 — System audit daemon
 │   ├── monitoring.py           # Layer 4 — Hardware sensors
+│   ├── syslog.py               # Layer 4 — Centralized log management
 │   ├── aide.py                 # Layer 5 — File integrity
 │   ├── smartmontools.py        # Layer 5 — Disk health
 │   ├── docker_security.py      # Layer 5 — Container scanning
-│   └── openscap.py             # Layer 6 — CIS compliance
+│   ├── openscap.py             # Layer 6 — CIS compliance
+│   └── lynis.py                # Layer 6 — Hardening audit
 ├── utils/
 │   ├── system.py               # OS detection, privilege checks
 │   ├── apt.py                  # Package management

@@ -200,6 +200,42 @@
       "install_cmd": "apt install -y libopenscap8 openscap-scanner openscap-utils scap-security-guide",
       "check_cmd": "which oscap",
       "post_install_msg": "OpenSCAP installed with weekly compliance scans. Run: sudo aegis openscap-scan"
+    },
+    {
+      "category": "hardening",
+      "name": "GRUB Hardening",
+      "package": "grub-common",
+      "description": "GRUB bootloader hardening \u2014 disable recovery mode, optional superuser password, restrict boot timeout",
+      "install_cmd": "echo 'grub-common already installed'",
+      "check_cmd": "which update-grub",
+      "post_install_msg": "GRUB hardened. Recovery mode disabled. Optional: set GRUB password with grub-mkpasswd-pbkdf2"
+    },
+    {
+      "category": "hardening-medium",
+      "name": "USBGuard",
+      "package": "usbguard",
+      "description": "USB device authorization policy \u2014 blocks unauthorized USB devices including BadUSB/rubber ducky attacks",
+      "install_cmd": "apt install -y usbguard",
+      "check_cmd": "which usbguard",
+      "post_install_msg": "USBGuard active. Authorize new devices with: sudo usbguard allow-device <id>"
+    },
+    {
+      "category": "monitoring",
+      "name": "Syslog (rsyslog)",
+      "package": "rsyslog",
+      "description": "Centralized log management \u2014 collects auth, kernel, cron, and alert logs with 90-day retention",
+      "install_cmd": "apt install -y rsyslog logrotate",
+      "check_cmd": "which rsyslogd",
+      "post_install_msg": "Centralized logging active. Logs in /var/log/aegis/"
+    },
+    {
+      "category": "hardening-low",
+      "name": "Lynis",
+      "package": "lynis",
+      "description": "System hardening auditor \u2014 produces a hardening index score and prioritized security suggestions",
+      "install_cmd": "apt install -y lynis",
+      "check_cmd": "which lynis",
+      "post_install_msg": "Lynis installed with weekly audits. Review suggestions: sudo lynis show details <TEST-ID>"
     }
   ]
 }
