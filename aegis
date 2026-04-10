@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Aegis — Automated Linux Shield Defense
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec python3 "$DIR/setup.py" "$@"

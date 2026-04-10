@@ -1,0 +1,205 @@
+{
+  "tools": [
+    {
+      "category": "firewall",
+      "name": "UFW Firewall",
+      "package": "ufw",
+      "description": "Uncomplicated Firewall - simple interface to iptables",
+      "install_cmd": "apt install -y ufw",
+      "check_cmd": "which ufw",
+      "enable_cmd": "ufw enable",
+      "post_install_msg": "UFW installed. Configure rules with: sudo ufw allow/deny <port|service>"
+    },
+    {
+      "category": "vpn",
+      "name": "AirVPN (Eddie)",
+      "package": "airvpn-eddie",
+      "description": "AirVPN client for privacy and secure browsing",
+      "install_cmd": "curl -s https://eddie.website/repository/keys/eddie.gpg.key | sudo apt-key add - && echo 'deb [signed-by=/usr/share/keyrings/eddie.gpg] https://eddie.website/repository/debian stable main' | sudo tee /etc/apt/sources.list.d/eddie.list && sudo apt update && sudo apt install -y eddie-cli",
+      "check_cmd": "which eddie",
+      "post_install_msg": "Eddie installed. Start with: eddie --help"
+    },
+    {
+      "category": "malware",
+      "name": "ClamAV",
+      "package": "clamav clamav-daemon",
+      "description": "Antivirus engine for detecting trojans, viruses, malware",
+      "install_cmd": "apt install -y clamav clamav-daemon",
+      "check_cmd": "which clamscan",
+      "enable_cmd": "systemctl enable clamav-daemon && systemctl start clamav-daemon",
+      "post_install_msg": "ClamAV installed. Update database: sudo freshclam, Scan: sudo clamscan -r /path"
+    },
+    {
+      "category": "malware",
+      "name": "rkhunter",
+      "package": "rkhunter",
+      "description": "Rootkit scanner and system integrity monitor",
+      "install_cmd": "apt install -y rkhunter",
+      "check_cmd": "which rkhunter",
+      "enable_cmd": "rkhunter --update",
+      "post_install_msg": "rkhunter installed. Run: sudo rkhunter --check --skip-keypress"
+    },
+    {
+      "category": "isolation",
+      "name": "Firejail",
+      "package": "firejail",
+      "description": "Linux namespaces and seccomp profiles for process isolation",
+      "install_cmd": "apt install -y firejail",
+      "check_cmd": "which firejail",
+      "post_install_msg": "Firejail installed. Sandbox apps with: firejail <application>"
+    },
+    {
+      "category": "monitoring",
+      "name": "lm-sensors",
+      "package": "lm-sensors",
+      "description": "Hardware monitoring tools - temperature, voltage, fan sensors",
+      "install_cmd": "apt install -y lm-sensors",
+      "check_cmd": "which sensors",
+      "post_install_msg": "lm-sensors installed. Detect sensors: sudo sensors-detect"
+    },
+    {
+      "category": "monitoring",
+      "name": "psensor",
+      "package": "psensor",
+      "description": "GUI for monitoring hardware temperatures and fan speeds",
+      "install_cmd": "apt install -y psensor",
+      "check_cmd": "which psensor",
+      "post_install_msg": "psensor installed. GUI for system monitoring."
+    },
+    {
+      "category": "monitoring",
+      "name": "glances",
+      "package": "glances",
+      "description": "Cross-platform system monitoring dashboard",
+      "install_cmd": "apt install -y glances",
+      "check_cmd": "which glances",
+      "post_install_msg": "glances installed. Run: glances"
+    },
+    {
+      "category": "monitoring",
+      "name": "hardinfo",
+      "package": "hardinfo",
+      "description": "System hardware information and benchmarking tool",
+      "install_cmd": "apt install -y hardinfo",
+      "check_cmd": "which hardinfo",
+      "post_install_msg": "hardinfo installed. Run: hardinfo"
+    },
+    {
+      "category": "monitoring",
+      "name": "CoreCtrl",
+      "package": "corectrl",
+      "description": "GUI for AMD GPU monitoring and control (RDNA/NAVI/VEGA)",
+      "install_cmd": "apt install -y corectrl",
+      "check_cmd": "which corectrl",
+      "post_install_msg": "CoreCtrl installed. Run: corectrl"
+    },
+    {
+      "category": "monitoring",
+      "name": "rocm-smi",
+      "package": "rocm-smi",
+      "description": "AMD GPU monitoring and control command-line tool",
+      "install_cmd": "apt install -y rocm-smi",
+      "check_cmd": "which rocm-smi",
+      "post_install_msg": "rocm-smi installed. Check GPU: rocm-smi --showtemp --showpower"
+    },
+    {
+      "category": "hardening",
+      "name": "Fail2ban",
+      "package": "fail2ban",
+      "description": "Intrusion prevention - ban IPs attempting repeated unauthorized access",
+      "install_cmd": "apt install -y fail2ban",
+      "check_cmd": "which fail2ban-client",
+      "post_install_msg": "Fail2ban installed. Check status: sudo fail2ban-client status"
+    },
+    {
+      "category": "hardening",
+      "name": "Auditd",
+      "package": "auditd",
+      "description": "System audit daemon - logs system calls and file access for forensics",
+      "install_cmd": "apt install -y auditd audispd-plugins",
+      "check_cmd": "which auditd",
+      "post_install_msg": "Auditd installed. Check status: sudo systemctl status auditd"
+    },
+    {
+      "category": "hardening",
+      "name": "SSH Hardening",
+      "package": "openssh-server",
+      "description": "SSH configuration hardening - strong ciphers, key exchange, modern algorithms",
+      "install_cmd": "apt install -y openssh-server",
+      "check_cmd": "which sshd",
+      "post_install_msg": "SSH hardened. Review config: sudo sshd -T"
+    },
+    {
+      "category": "hardening",
+      "name": "Unattended-upgrades",
+      "package": "unattended-upgrades",
+      "description": "Automatic security updates - keeps system patched with latest security fixes",
+      "install_cmd": "apt install -y unattended-upgrades",
+      "check_cmd": "which unattended-upgrades",
+      "post_install_msg": "Unattended-upgrades enabled. Check status: sudo systemctl status unattended-upgrades"
+    },
+    {
+      "category": "hardening-medium",
+      "name": "Smartmontools",
+      "package": "smartmontools",
+      "description": "Disk SMART health monitoring - prevents data loss from failing drives",
+      "install_cmd": "apt install -y smartmontools",
+      "check_cmd": "which smartctl",
+      "post_install_msg": "smartmontools installed. Check status: sudo systemctl status smartd"
+    },
+    {
+      "category": "hardening-medium",
+      "name": "AppArmor",
+      "package": "apparmor apparmor-profiles",
+      "description": "Mandatory Access Control - additional security profiles and enforcement",
+      "install_cmd": "apt install -y apparmor apparmor-profiles apparmor-profiles-extra",
+      "check_cmd": "which aa-status",
+      "post_install_msg": "AppArmor profiles installed. Check status: sudo aa-status --summary"
+    },
+    {
+      "category": "hardening-medium",
+      "name": "Kernel Sysctl Hardening",
+      "package": "sysctl",
+      "description": "Advanced kernel hardening - exploit mitigations and attack surface reduction",
+      "install_cmd": "echo 'Already available'",
+      "check_cmd": "which sysctl",
+      "post_install_msg": "Kernel parameters hardened. Check status: sudo sysctl kernel.yama.ptrace_scope"
+    },
+    {
+      "category": "hardening-medium",
+      "name": "Bluetooth Security",
+      "package": "bluez",
+      "description": "Bluetooth security controls - disable or harden wireless connectivity",
+      "install_cmd": "apt install -y bluez",
+      "check_cmd": "which bluetoothctl",
+      "post_install_msg": "Bluetooth tools installed. Configure with aegis for hardening options"
+    },
+    {
+      "category": "hardening-low",
+      "name": "AIDE",
+      "package": "aide aide-common",
+      "description": "File integrity monitoring - detects unauthorized filesystem changes (defense-in-depth)",
+      "install_cmd": "apt install -y aide aide-common",
+      "check_cmd": "which aide",
+      "post_install_msg": "AIDE installed with daily scans. Database: /var/lib/aide/aide.db"
+    },
+    {
+      "category": "hardening-low",
+      "name": "Docker Security (Trivy)",
+      "package": "trivy",
+      "description": "Container image vulnerability scanning - detects CVEs in Docker images",
+      "install_cmd": "apt install -y trivy",
+      "check_cmd": "which trivy",
+      "post_install_msg": "Trivy installed. Scan images with: sudo aegis docker-scan <image:tag>"
+    },
+    {
+      "category": "hardening-low",
+      "name": "OpenSCAP",
+      "package": "libopenscap8 openscap-scanner",
+      "description": "CIS/DISA compliance verification - audits system against security benchmarks",
+      "install_cmd": "apt install -y libopenscap8 openscap-scanner openscap-utils scap-security-guide",
+      "check_cmd": "which oscap",
+      "post_install_msg": "OpenSCAP installed with weekly compliance scans. Run: sudo aegis openscap-scan"
+    }
+  ]
+}
